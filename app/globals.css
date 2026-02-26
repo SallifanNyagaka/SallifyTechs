@@ -1,26 +1,124 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+:root,
+html.light {
+  --color-bg: #f8fafc;
+  --color-section: #ffffff;
+  --color-section-alt: #f1f5f9;
+  --color-navbar: #ffffff;
+  --color-footer: #0f172a;
+
+  --color-heading: #020617;
+  --color-subheading: #334155;
+  --color-body: #475569;
+  --color-muted: #64748b;
+
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-secondary: #06b6d4;
+  --color-border: #e2e8f0;
+  --color-card: #ffffff;
+  --color-shadow: 0 10px 30px -18px rgba(15, 23, 42, 0.2);
+  --color-on-dark: #f8fafc;
+  --color-body-on-dark: #cbd5e1;
+  --color-muted-on-dark: #bae6fd;
+  --color-border-on-dark: rgba(248, 250, 252, 0.3);
+  --color-overlay-soft: rgba(2, 6, 23, 0.45);
+  --color-overlay-strong: rgba(2, 6, 23, 0.8);
+}
+
+html.dark {
+  --color-bg: #020617;
+  --color-section: #0f172a;
+  --color-section-alt: #1e293b;
+  --color-navbar: #020617;
+  --color-footer: #020617;
+
+  --color-heading: #f8fafc;
+  --color-subheading: #cbd5f5;
+  --color-body: #94a3b8;
+  --color-muted: #64748b;
+
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-secondary: #22d3ee;
+  --color-border: #1e293b;
+  --color-card: #0f172a;
+  --color-shadow: 0 14px 34px -20px rgba(2, 6, 23, 0.65);
+  --color-on-dark: #f8fafc;
+  --color-body-on-dark: #cbd5e1;
+  --color-muted-on-dark: #bae6fd;
+  --color-border-on-dark: rgba(248, 250, 252, 0.3);
+  --color-overlay-soft: rgba(2, 6, 23, 0.45);
+  --color-overlay-strong: rgba(2, 6, 23, 0.8);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-body);
+  --font-sans: "Poppins", "Segoe UI", Arial, sans-serif;
+  --font-mono: "JetBrains Mono", Consolas, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  transition: background-color 300ms ease, color 300ms ease, border-color 300ms ease;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+[id] {
+  scroll-margin-top: 6rem;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-bg);
+  color: var(--color-body);
+  font-family: "Poppins", "Segoe UI", Arial, sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--color-heading);
+  letter-spacing: -0.015em;
+}
+
+p {
+  line-height: 1.7;
+}
+
+/* Admin-only button motion system: applies to current and future buttons */
+.admin-surface button:not([disabled]):not([data-no-anim]) {
+  transition:
+    transform 180ms ease,
+    box-shadow 220ms ease,
+    filter 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease;
+  transform: translateY(0) scale(1);
+  will-change: transform, box-shadow;
+}
+
+.admin-surface button:not([disabled]):not([data-no-anim]):hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 12px 24px -14px rgba(0, 0, 0, 0.45);
+  filter: saturate(1.05);
+}
+
+.admin-surface button:not([disabled]):not([data-no-anim]):active {
+  transform: translateY(0) scale(0.99);
+  box-shadow: 0 6px 16px -12px rgba(0, 0, 0, 0.4);
+}
+
+.admin-surface button:focus-visible {
+  outline: 2px solid #f6d08d;
+  outline-offset: 2px;
 }
