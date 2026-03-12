@@ -1,7 +1,10 @@
-﻿import Image from "next/image"
+import type { Metadata } from "next"
+import Image from "next/image"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import Script from "next/script"
 import { getPortfolioProjects } from "@/lib/firestore/getPortfolioProjects"
+import { siteName, toAbsoluteUrl } from "@/lib/seo/site"
 import { resolveFirebaseImageUrl } from "@/lib/storage-url"
 
 function formatDate(value?: string) {
@@ -12,6 +15,53 @@ function formatDate(value?: string) {
     year: "numeric",
     month: "long",
   })
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}): Promise<Metadata> {
+  const { slug } = await params
+  const projects = await getPortfolioProjects()
+  const project = projects.find((item) => item.slug === slug)
+
+  if (!project) {
+    return { title: `Portfolio Project | ${siteName}` }
+  }
+
+  const seo = project.seo || {}
+  const title = seo.metaTitle || project.title
+  const description = seo.metaDescription || project.projectSummary
+  const canonical = seo.canonicalUrl || `/portfolio/${project.slug}`
+  const ogImage = resolveFirebaseImageUrl(seo.ogImage || project.coverImageUrl || project.thumbnailUrl)
+  const noIndex = seo.noIndex === true
+
+  return {
+    title,
+    description,
+    keywords: seo.keywords || [],
+    alternates: {
+      canonical,
+    },
+    robots: {
+      index: !noIndex,
+      follow: !noIndex,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonical,
+      images: ogImage ? [ogImage] : undefined,
+      type: "article",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: ogImage ? [ogImage] : undefined,
+    },
+  }
 }
 
 export default async function PortfolioProjectPage({
@@ -31,9 +81,38 @@ export default async function PortfolioProjectPage({
   const gallery = (project.galleryImages || [])
     .map((image) => resolveFirebaseImageUrl(image))
     .filter(Boolean)
+  const canonicalUrl = project.seo?.canonicalUrl || toAbsoluteUrl(`/portfolio/${project.slug}`)
+
+  const portfolioSchema = {
+    "@context": "https://schema.org",
+    "@type": "CreativeWork",
+    name: project.seo?.metaTitle || project.title,
+    description: project.seo?.metaDescription || project.projectSummary,
+    image: resolveFirebaseImageUrl(project.seo?.ogImage || project.coverImageUrl || project.thumbnailUrl) || undefined,
+    creator: {
+      "@type": "Organization",
+      name: siteName,
+    },
+    datePublished: project.createdAt || undefined,
+    dateModified: project.updatedAt || undefined,
+    mainEntityOfPage: canonicalUrl,
+    keywords: project.seo?.keywords?.join(", ") || undefined,
+  }
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "Home", item: toAbsoluteUrl("/") },
+      { "@type": "ListItem", position: 2, name: "Portfolio", item: toAbsoluteUrl("/portfolio") },
+      { "@type": "ListItem", position: 3, name: project.title, item: canonicalUrl },
+    ],
+  }
 
   return (
     <main className="min-h-screen bg-[var(--color-bg)] px-4 py-10 text-[var(--color-heading)] sm:px-6 lg:px-10 dark:bg-[var(--color-bg)] dark:text-[var(--color-heading)]">
+      <Script id="portfolio-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(portfolioSchema) }} />
+      <Script id="portfolio-breadcrumb-schema" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
       <section className="mx-auto flex w-full max-w-6xl flex-col gap-8">
         <article className="overflow-hidden rounded-3xl border border-[var(--color-border)] bg-[var(--color-section)] shadow-sm dark:border-[var(--color-border)] dark:bg-[var(--color-footer)]">
           <div className="relative h-64 w-full sm:h-80 lg:h-[26rem]">

@@ -814,6 +814,14 @@ const servicesWithCmsDetail = services.map((service) => ({
   ctaText:
     "Need this service tailored to your roadmap? Book a consultation with Sallify Technologies and get a practical delivery plan.",
   ctaButtonText: "Start Consultation",
+  seo: {
+    metaTitle: `${service.title} | Sallify Techs`,
+    metaDescription: service.shortDescription,
+    keywords: [service.title, service.category, "Sallify Techs"],
+    canonicalUrl: `/services/${service.slug}`,
+    ogImage: service.coverImage,
+    noIndex: false,
+  },
 }))
 
 const portfolioItems = [
@@ -1008,6 +1016,14 @@ function buildPortfolioProject(item) {
     updatedAt: updatedAtBase,
     status: item.status || "published",
     mediaRefs: item.mediaRefs || {},
+    seo: {
+      metaTitle: `${item.title} Case Study | Sallify Techs`,
+      metaDescription: projectSummary,
+      keywords: [item.title, enhancement.category || "Portfolio", "Case Study"],
+      canonicalUrl: `/portfolio/${item.id}`,
+      ogImage: coverImageUrl || item.thumbnail || "",
+      noIndex: false,
+    },
   }
 }
 
@@ -1214,8 +1230,40 @@ function buildBlogPost(post) {
     published_date: publishedDate,
     created_at: createdAtBase,
     updated_at: updatedAtBase,
+    seo: {
+      metaTitle: `${post.title} | Sallify Techs Blog`,
+      metaDescription: post.excerpt,
+      keywords: [...(post.tags || []), post.category || "Blog"],
+      canonicalUrl: `/blog/${post.slug}`,
+      ogImage: heroImageUrl,
+      noIndex: post.status === "draft",
+    },
   }
 }
+
+const staticPagesSeo = [
+  {
+    id: "home",
+    slug: "home",
+    title: "Home",
+    seo: {
+      metaTitle: "Sallify Techs - Build Faster with Digital Solutions",
+      metaDescription:
+        "Sallify Techs builds web, mobile, design, and growth systems for modern businesses.",
+      keywords: ["Sallify Techs", "Web Development", "Mobile Development", "Digital Agency"],
+      canonicalUrl: "/",
+      ogImage: storageUrl("media/home/hero-main.jpg"),
+      noIndex: false,
+    },
+  },
+  { id: "about", slug: "about", title: "About", seo: { metaTitle: "About Sallify Techs", metaDescription: "Learn how Sallify Techs delivers web, mobile, design, and growth outcomes for clients.", keywords: ["About Sallify", "Digital Agency"], canonicalUrl: "/about", ogImage: storageUrl("media/about/company-hero.jpg"), noIndex: false } },
+  { id: "services", slug: "services", title: "Services", seo: { metaTitle: "Services | Sallify Techs", metaDescription: "Explore web development, mobile, systems, UI/UX, SEO, and growth services from Sallify Techs.", keywords: ["Services", "Web", "Mobile", "SEO"], canonicalUrl: "/services", ogImage: storageUrl("media/services/web-development-cover.jpg"), noIndex: false } },
+  { id: "portfolio", slug: "portfolio", title: "Portfolio", seo: { metaTitle: "Portfolio | Sallify Techs", metaDescription: "See case studies and project outcomes delivered by Sallify Techs across industries.", keywords: ["Portfolio", "Case Studies"], canonicalUrl: "/portfolio", ogImage: storageUrl("media/portfolio/fintrack-cover.jpg"), noIndex: false } },
+  { id: "blog", slug: "blog", title: "Blog", seo: { metaTitle: "Blog | Sallify Techs", metaDescription: "Read insights, playbooks, and technical guides from Sallify Techs.", keywords: ["Blog", "Engineering", "SEO"], canonicalUrl: "/blog", ogImage: storageUrl("media/blog/scale.jpg"), noIndex: false } },
+  { id: "process", slug: "process", title: "Process", seo: { metaTitle: "Our Process | Sallify Techs", metaDescription: "Understand the delivery workflow Sallify Techs uses from discovery to maintenance.", keywords: ["Process", "Delivery Workflow"], canonicalUrl: "/process", ogImage: storageUrl("media/process/discovery.jpg"), noIndex: false } },
+  { id: "testimonials", slug: "testimonials", title: "Testimonials", seo: { metaTitle: "Testimonials | Sallify Techs", metaDescription: "Explore success stories and testimonials from Sallify Techs clients.", keywords: ["Testimonials", "Success Stories"], canonicalUrl: "/testimonials", ogImage: storageUrl("media/testimonials/client-1.jpg"), noIndex: false } },
+  { id: "contact", slug: "contact", title: "Contact", seo: { metaTitle: "Contact | Sallify Techs", metaDescription: "Start your project with Sallify Techs. Share your requirements and get a response quickly.", keywords: ["Contact", "Start Project"], canonicalUrl: "/contact", ogImage: storageUrl("media/contact/hero.jpg"), noIndex: false } },
+]
 
 const processSteps = [
   {
@@ -2757,6 +2805,14 @@ async function seed() {
   console.log("Seeding contact methods...")
   for (const method of contactMethods) {
     batch.set(doc(firestore, "contact_methods", method.id), method, { merge: true })
+  }
+
+  console.log("Seeding static pages SEO...")
+  for (const page of staticPagesSeo) {
+    batch.set(doc(firestore, "static_pages", page.id), {
+      ...page,
+      updatedAt: updatedAtBase,
+    }, { merge: true })
   }
 
   console.log("Seeding admin users...")

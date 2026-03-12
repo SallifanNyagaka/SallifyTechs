@@ -20,6 +20,14 @@ export type BlogPostRecord = {
   createdAt: string
   updatedAt: string
   status: string
+  seo?: {
+    metaTitle?: string
+    metaDescription?: string
+    keywords?: string[]
+    canonicalUrl?: string
+    ogImage?: string
+    noIndex?: boolean
+  }
 }
 
 function toIso(value: unknown) {
@@ -37,6 +45,19 @@ function toIso(value: unknown) {
 function toArray(value: unknown) {
   if (!Array.isArray(value)) return []
   return value.map((item) => String(item || "").trim()).filter(Boolean)
+}
+
+function normalizeSeo(value: unknown): BlogPostRecord["seo"] {
+  if (!value || typeof value !== "object") return undefined
+  const raw = value as Record<string, unknown>
+  return {
+    metaTitle: String(raw.metaTitle || ""),
+    metaDescription: String(raw.metaDescription || ""),
+    keywords: toArray(raw.keywords),
+    canonicalUrl: String(raw.canonicalUrl || ""),
+    ogImage: String(raw.ogImage || ""),
+    noIndex: Boolean(raw.noIndex),
+  }
 }
 
 function normalizeBlog(id: string, raw: Record<string, unknown>): BlogPostRecord {
@@ -64,6 +85,7 @@ function normalizeBlog(id: string, raw: Record<string, unknown>): BlogPostRecord
     createdAt: toIso(raw.created_at || raw.createdAt),
     updatedAt: toIso(raw.updated_at || raw.updatedAt),
     status: normalizedStatus,
+    seo: normalizeSeo(raw.seo),
   }
 }
 

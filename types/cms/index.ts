@@ -10,6 +10,15 @@ export type FirestoreDateLike =
   | FieldValue
   | null
 
+export type SeoFields = {
+  metaTitle?: string
+  metaDescription?: string
+  keywords?: string[]
+  canonicalUrl?: string
+  ogImage?: string
+  noIndex?: boolean
+}
+
 export type HeroSection = {
   key?: string
   title?: string
@@ -137,6 +146,7 @@ export type Service = {
   category?: string
   status?: Status
   order?: number
+  seo?: SeoFields
 }
 
 export type PortfolioItem = {
@@ -178,6 +188,7 @@ export type PortfolioItem = {
   order?: number
   completionDate?: FirestoreDateLike
   status?: Status
+  seo?: SeoFields
 }
 
 export type BlogPost = {
@@ -207,6 +218,15 @@ export type BlogPost = {
   created_at?: FirestoreDateLike
   updated_at?: FirestoreDateLike
   publishedAt?: FirestoreDateLike
+  seo?: SeoFields
+}
+
+export type StaticPageSeo = {
+  id?: string
+  slug?: string
+  title?: string
+  seo?: SeoFields
+  updatedAt?: FirestoreDateLike
 }
 
 export type ProcessStep = {

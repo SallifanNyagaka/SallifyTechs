@@ -20,6 +20,23 @@ type ContactMethod = {
   active?: boolean
 }
 
+type StaticSeoDoc = {
+  id?: string
+  slug?: string
+  title?: string
+  seo?: {
+    metaTitle?: string
+    metaDescription?: string
+    keywords?: string[]
+    canonicalUrl?: string
+    ogImage?: string
+    noIndex?: boolean
+  }
+  updatedAt?: unknown
+}
+
+const STATIC_PAGE_IDS = ["home", "about", "services", "portfolio", "blog", "process", "testimonials", "contact"]
+
 function getMethodByPlatform(methods: ContactMethod[], ...platforms: string[]) {
   const normalized = platforms.map((item) => item.trim().toLowerCase())
   return methods.find((item) =>
@@ -30,8 +47,12 @@ function getMethodByPlatform(methods: ContactMethod[], ...platforms: string[]) {
 export default function SettingsManager() {
   const settings = useDocument<SiteSettings>("settings", "site")
   const methods = useCollection<ContactMethod>("contact_methods")
+  const staticSeo = useCollection<StaticSeoDoc>("static_pages")
   const { notify } = useToast()
   const [values, setValues] = useState<SiteSettings>({})
+  const [selectedStaticPage, setSelectedStaticPage] = useState("home")
+  const [seoKeywordsDraft, setSeoKeywordsDraft] = useState("")
+  const [staticSeoValues, setStaticSeoValues] = useState<StaticSeoDoc>({ slug: "home", seo: {} })
 
   useEffect(() => {
     const settingsData = settings.data
@@ -48,7 +69,17 @@ export default function SettingsManager() {
     return () => cancelAnimationFrame(frame)
   }, [settings.data, methods.data])
 
-  if (settings.loading || methods.loading) return <LoadingSkeleton rows={8} />
+  useEffect(() => {
+    const current = staticSeo.data.find((item) => (item.slug || item.id) === selectedStaticPage)
+    const next: StaticSeoDoc = current || { slug: selectedStaticPage, title: selectedStaticPage, seo: {} }
+    const frame = requestAnimationFrame(() => {
+      setStaticSeoValues(next)
+      setSeoKeywordsDraft((next.seo?.keywords || []).join(", "))
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [selectedStaticPage, staticSeo.data])
+
+  if (settings.loading || methods.loading || staticSeo.loading) return <LoadingSkeleton rows={8} />
 
   const saveSettings = async () => {
     const emailMethod = getMethodByPlatform(methods.data, "Email")
@@ -112,6 +143,24 @@ export default function SettingsManager() {
     notify(`${field === "logo" ? "Logo" : "Favicon"} removed`)
   }
 
+  const saveStaticSeo = async () => {
+    const slug = selectedStaticPage
+    await upsertDocument("static_pages", slug, {
+      id: slug,
+      slug,
+      title: staticSeoValues.title || slug,
+      seo: {
+        ...(staticSeoValues.seo || {}),
+        keywords: seoKeywordsDraft
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean),
+      },
+      updatedAt: new Date().toISOString(),
+    })
+    notify("Static page SEO updated")
+  }
+
   return (
     <EditorLayout
       title="Site Settings"
@@ -158,6 +207,115 @@ export default function SettingsManager() {
           onUploaded={(url) => saveBrandingAsset("favicon", url)}
         />
       </div>
+
+      <section className="mt-8 rounded-2xl border border-[var(--color-border)] bg-[var(--color-section)] p-5">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-lg font-semibold text-[var(--color-heading)]">Static Pages SEO</h3>
+          <button
+            onClick={saveStaticSeo}
+            className="rounded-xl bg-[var(--color-footer)] px-4 py-2 text-sm font-semibold text-[var(--color-on-dark)]"
+          >
+            Save SEO
+          </button>
+        </div>
+        <div className="grid gap-3 md:grid-cols-2">
+          <label className="text-sm font-medium text-[var(--color-body)]">
+            Page
+            <select
+              value={selectedStaticPage}
+              onChange={(event) => setSelectedStaticPage(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            >
+              {STATIC_PAGE_IDS.map((pageId) => (
+                <option key={pageId} value={pageId}>
+                  {pageId}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium text-[var(--color-body)]">
+            Label
+            <input
+              value={staticSeoValues.title || ""}
+              onChange={(event) => setStaticSeoValues((prev) => ({ ...prev, title: event.target.value }))}
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            />
+          </label>
+          <label className="text-sm font-medium text-[var(--color-body)] md:col-span-2">
+            Meta Title
+            <input
+              value={staticSeoValues.seo?.metaTitle || ""}
+              onChange={(event) =>
+                setStaticSeoValues((prev) => ({
+                  ...prev,
+                  seo: { ...(prev.seo || {}), metaTitle: event.target.value },
+                }))
+              }
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            />
+          </label>
+          <label className="text-sm font-medium text-[var(--color-body)] md:col-span-2">
+            Meta Description
+            <textarea
+              value={staticSeoValues.seo?.metaDescription || ""}
+              onChange={(event) =>
+                setStaticSeoValues((prev) => ({
+                  ...prev,
+                  seo: { ...(prev.seo || {}), metaDescription: event.target.value },
+                }))
+              }
+              className="mt-2 min-h-[100px] w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            />
+          </label>
+          <label className="text-sm font-medium text-[var(--color-body)] md:col-span-2">
+            Keywords (comma-separated)
+            <input
+              value={seoKeywordsDraft}
+              onChange={(event) => setSeoKeywordsDraft(event.target.value)}
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            />
+          </label>
+          <label className="text-sm font-medium text-[var(--color-body)] md:col-span-2">
+            Canonical URL
+            <input
+              value={staticSeoValues.seo?.canonicalUrl || ""}
+              onChange={(event) =>
+                setStaticSeoValues((prev) => ({
+                  ...prev,
+                  seo: { ...(prev.seo || {}), canonicalUrl: event.target.value },
+                }))
+              }
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            />
+          </label>
+          <label className="text-sm font-medium text-[var(--color-body)] md:col-span-2">
+            OG Image URL
+            <input
+              value={staticSeoValues.seo?.ogImage || ""}
+              onChange={(event) =>
+                setStaticSeoValues((prev) => ({
+                  ...prev,
+                  seo: { ...(prev.seo || {}), ogImage: event.target.value },
+                }))
+              }
+              className="mt-2 w-full rounded-xl border border-[var(--color-border)] bg-[var(--color-section)] px-3 py-2 text-sm text-[var(--color-heading)]"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm font-medium text-[var(--color-body)]">
+            <input
+              type="checkbox"
+              checked={Boolean(staticSeoValues.seo?.noIndex)}
+              onChange={(event) =>
+                setStaticSeoValues((prev) => ({
+                  ...prev,
+                  seo: { ...(prev.seo || {}), noIndex: event.target.checked },
+                }))
+              }
+            />
+            No index
+          </label>
+        </div>
+      </section>
     </EditorLayout>
   )
 }

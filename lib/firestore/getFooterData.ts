@@ -1,5 +1,5 @@
-import { cache } from "react"
 import { collection, doc, getDoc, getDocs, query } from "firebase/firestore"
+import { unstable_noStore as noStore } from "next/cache"
 import { firestore } from "@/lib/firebase"
 
 export type FooterLinkItem = {
@@ -66,7 +66,14 @@ function normalizeSocialHref(platform: string, value: string) {
 
 const SOCIAL_PLATFORMS = ["whatsapp", "facebook", "instagram", "telegram", "x", "twitter", "linkedin", "youtube", "tiktok"]
 
-export const getFooterData = cache(async (): Promise<FooterData> => {
+function normalizePlatform(platform: string) {
+  const value = platform.trim().toLowerCase()
+  const matched = SOCIAL_PLATFORMS.find((item) => value.includes(item))
+  return matched || value
+}
+
+export async function getFooterData(): Promise<FooterData> {
+  noStore()
   const [
     linksSnap,
     contactsSnap,
@@ -147,13 +154,14 @@ export const getFooterData = cache(async (): Promise<FooterData> => {
     .map((item) => ({
       id: String(item.id),
       platform: String(item.platform || ""),
+      platformKey: normalizePlatform(String(item.platform || "")),
       url: normalizeSocialHref(String(item.platform || ""), String(item.value || "")),
       iconUrl: String(item.iconUrl || item.icon_url || ""),
       order: Number(item.order || 0),
     }))
     .filter((item) => item.platform && item.url)
 
-  const footerSocials = socialsSnap.docs
+  const footerSocialsRaw = socialsSnap.docs
     .map((item) => {
       const raw = item.data() as Record<string, unknown>
       return { id: item.id, ...raw } as Record<string, unknown> & { id: string }
@@ -161,18 +169,46 @@ export const getFooterData = cache(async (): Promise<FooterData> => {
     .map((item) => {
       const platform = String(item.platform || "")
       const normalized = normalizeSocialHref(platform, String(item.url || item.value || ""))
-      const matchedContact = contactMethodSocials.find((social) => social.platform.toLowerCase() === platform.toLowerCase())
+      const matchedContact = contactMethodSocials.find(
+        (social) =>
+          social.platformKey === normalizePlatform(platform) ||
+          social.platform.toLowerCase() === platform.toLowerCase()
+      )
       return {
         id: String(item.id),
         platform,
+        platformKey: normalizePlatform(platform),
         url: normalized,
-        iconUrl: String(item.iconUrl || matchedContact?.iconUrl || ""),
+        // Keep footer icons in sync with contact_methods, fallback to footer value.
+        iconUrl: String(matchedContact?.iconUrl || item.iconUrl || ""),
         order: Number(item.order || 0),
-      } satisfies FooterSocial
+      }
     })
     .filter((item) => item.platform && item.url)
 
-  const socials = (footerSocials.length ? footerSocials : contactMethodSocials).sort((a, b) => a.order - b.order)
+  const footerByPlatform = new Map(footerSocialsRaw.map((item) => [item.platformKey, item]))
+  const mergedSocials = contactMethodSocials.map((item) => {
+    const footerOverride = footerByPlatform.get(item.platformKey)
+    return {
+      id: footerOverride?.id || item.id,
+      platform: item.platform,
+      url: footerOverride?.url || item.url,
+      iconUrl: item.iconUrl || footerOverride?.iconUrl || "",
+      order: footerOverride?.order ?? item.order,
+    } satisfies FooterSocial
+  })
+
+  const extraFooterSocials = footerSocialsRaw
+    .filter((item) => !mergedSocials.some((social) => normalizePlatform(social.platform) === item.platformKey))
+    .map((item) => ({
+      id: item.id,
+      platform: item.platform,
+      url: item.url,
+      iconUrl: item.iconUrl,
+      order: item.order,
+    } satisfies FooterSocial))
+
+  const socials = [...mergedSocials, ...extraFooterSocials].sort((a, b) => a.order - b.order)
 
   const legal = legalSnap.docs
     .map((item) => {
@@ -207,4 +243,4 @@ export const getFooterData = cache(async (): Promise<FooterData> => {
     cta,
     legal,
   }
-})
+}

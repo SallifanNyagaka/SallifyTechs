@@ -81,6 +81,7 @@ export default function ServicesManager() {
   const [faqDraft, setFaqDraft] = useState<ServiceFaq>({})
   const [pricingDraft, setPricingDraft] = useState<ServicePricingPlan>({ recommended: false })
   const [pricingFeaturesDraft, setPricingFeaturesDraft] = useState("")
+  const [seoKeywordsDraft, setSeoKeywordsDraft] = useState("")
 
   const sortedData = useMemo(
     () => [...data].sort((a, b) => (Number(a.order || 0) || 0) - (Number(b.order || 0) || 0)),
@@ -102,6 +103,10 @@ export default function ServicesManager() {
       id,
       fullDescription: values.longDescription || values.fullDescription || "",
       coverImage: values.heroImage || values.coverImage || "",
+      seo: {
+        ...(values.seo || {}),
+        keywords: parseCsv(seoKeywordsDraft || (values.seo?.keywords || []).join(", ")),
+      },
       updatedAt: serverTimestamp(),
       createdAt: existingCreatedAt || serverTimestamp(),
     })
@@ -110,6 +115,7 @@ export default function ServicesManager() {
     setFaqDraft({})
     setPricingDraft({ recommended: false })
     setPricingFeaturesDraft("")
+    setSeoKeywordsDraft("")
     notify("Service saved")
   }
 
@@ -243,6 +249,73 @@ export default function ServicesManager() {
                   </div>
                 ))}
               </div>
+            </section>
+
+            <section className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-section)] p-5 dark:border-[var(--color-border)] dark:bg-[var(--color-footer)]">
+              <h2 className="text-lg font-semibold text-[var(--color-heading)] dark:text-[var(--color-subheading)]">SEO</h2>
+              <input
+                placeholder="Meta title"
+                value={values.seo?.metaTitle || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), metaTitle: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <textarea
+                placeholder="Meta description"
+                value={values.seo?.metaDescription || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), metaDescription: event.target.value },
+                  }))
+                }
+                className={textAreaClass}
+              />
+              <input
+                placeholder="Keywords (comma separated)"
+                value={seoKeywordsDraft || (values.seo?.keywords || []).join(", ")}
+                onChange={(event) => setSeoKeywordsDraft(event.target.value)}
+                className={inputClass}
+              />
+              <input
+                placeholder="Canonical URL (optional)"
+                value={values.seo?.canonicalUrl || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), canonicalUrl: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="OG image URL (optional)"
+                value={values.seo?.ogImage || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), ogImage: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <label className="flex items-center gap-2 text-sm text-[var(--color-body)] dark:text-[var(--color-heading)]">
+                <input
+                  type="checkbox"
+                  checked={Boolean(values.seo?.noIndex)}
+                  onChange={(event) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      seo: { ...(prev.seo || {}), noIndex: event.target.checked },
+                    }))
+                  }
+                />
+                No index
+              </label>
             </section>
           </div>
 
@@ -383,7 +456,10 @@ export default function ServicesManager() {
               <div className="flex gap-3">
                 <button
                   className="text-xs font-semibold text-[var(--color-body)] dark:text-[var(--color-heading)]"
-                  onClick={() => setValues(row)}
+                  onClick={() => {
+                    setValues(row)
+                    setSeoKeywordsDraft("")
+                  }}
                 >
                   Edit
                 </button>

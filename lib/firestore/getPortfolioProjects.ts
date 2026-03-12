@@ -39,6 +39,15 @@ export type PortfolioProject = {
   featured: boolean
   order: number
   createdAt: string
+  updatedAt: string
+  seo?: {
+    metaTitle?: string
+    metaDescription?: string
+    keywords?: string[]
+    canonicalUrl?: string
+    ogImage?: string
+    noIndex?: boolean
+  }
 }
 
 function toIsoDate(value: unknown) {
@@ -58,6 +67,19 @@ function toArray(value: unknown) {
   return value
     .map((item) => String(item || "").trim())
     .filter(Boolean)
+}
+
+function normalizeSeo(value: unknown): PortfolioProject["seo"] {
+  if (!value || typeof value !== "object") return undefined
+  const raw = value as Record<string, unknown>
+  return {
+    metaTitle: String(raw.metaTitle || ""),
+    metaDescription: String(raw.metaDescription || ""),
+    keywords: toArray(raw.keywords),
+    canonicalUrl: String(raw.canonicalUrl || ""),
+    ogImage: String(raw.ogImage || ""),
+    noIndex: Boolean(raw.noIndex),
+  }
 }
 
 function normalizeProject(
@@ -85,6 +107,8 @@ function normalizeProject(
     featured: Boolean(raw.featured),
     order: Number(raw.order || 0),
     createdAt: toIsoDate(raw.created_at || raw.createdAt),
+    updatedAt: toIsoDate(raw.updated_at || raw.updatedAt),
+    seo: normalizeSeo(raw.seo),
   }
 }
 

@@ -105,6 +105,7 @@ export default function PortfolioManager() {
   const [values, setValues] = useState<EditorPortfolio>({ status: "published" })
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [reorderingId, setReorderingId] = useState<string | null>(null)
+  const [seoKeywordsDraft, setSeoKeywordsDraft] = useState("")
 
   const records = useMemo(
     () => data.map(normalizeRecord).sort((a, b) => Number(a.order || 0) - Number(b.order || 0)),
@@ -152,6 +153,10 @@ export default function PortfolioManager() {
       testimonial_author: values.testimonialAuthor || "",
       completionDate,
       completion_date: completionDate,
+      seo: {
+        ...(values.seo || {}),
+        keywords: parseCsv(seoKeywordsDraft || (values.seo?.keywords || []).join(", ")),
+      },
       createdAt: values.createdAt || serverTimestamp(),
       created_at: values.created_at || serverTimestamp(),
       updatedAt: serverTimestamp(),
@@ -163,6 +168,7 @@ export default function PortfolioManager() {
     ])
 
     setValues({ status: "published" })
+    setSeoKeywordsDraft("")
     notify("Portfolio project saved")
   }
 
@@ -327,6 +333,73 @@ export default function PortfolioManager() {
                 className="min-h-[120px] w-full rounded-xl border border-[var(--color-border)] dark:border-[var(--color-border)] bg-[var(--color-section)] dark:bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-heading)] dark:text-[var(--color-heading)]"
               />
             </section>
+
+            <section className="space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-section)] p-5 dark:border-[var(--color-border)] dark:bg-[var(--color-footer)]">
+              <h2 className="text-lg font-semibold text-[var(--color-heading)] dark:text-[var(--color-subheading)]">SEO</h2>
+              <input
+                placeholder="Meta title"
+                value={values.seo?.metaTitle || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), metaTitle: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <textarea
+                placeholder="Meta description"
+                value={values.seo?.metaDescription || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), metaDescription: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="Keywords (comma-separated)"
+                value={seoKeywordsDraft || (values.seo?.keywords || []).join(", ")}
+                onChange={(event) => setSeoKeywordsDraft(event.target.value)}
+                className={inputClass}
+              />
+              <input
+                placeholder="Canonical URL (optional)"
+                value={values.seo?.canonicalUrl || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), canonicalUrl: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="OG image URL (optional)"
+                value={values.seo?.ogImage || ""}
+                onChange={(event) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    seo: { ...(prev.seo || {}), ogImage: event.target.value },
+                  }))
+                }
+                className={inputClass}
+              />
+              <label className="flex items-center gap-2 text-sm text-[var(--color-body)] dark:text-[var(--color-heading)]">
+                <input
+                  type="checkbox"
+                  checked={Boolean(values.seo?.noIndex)}
+                  onChange={(event) =>
+                    setValues((prev) => ({
+                      ...prev,
+                      seo: { ...(prev.seo || {}), noIndex: event.target.checked },
+                    }))
+                  }
+                />
+                No index
+              </label>
+            </section>
           </div>
 
           <div className="space-y-6">
@@ -408,7 +481,10 @@ export default function PortfolioManager() {
               <div className="flex gap-3">
                 <button
                   className="text-xs font-semibold text-[var(--color-body)] dark:text-[var(--color-heading)]"
-                  onClick={() => setValues(row)}
+                  onClick={() => {
+                    setValues(row)
+                    setSeoKeywordsDraft("")
+                  }}
                 >
                   Edit
                 </button>
