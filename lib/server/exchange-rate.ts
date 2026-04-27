@@ -8,7 +8,7 @@ const CACHE_TTL_MS = 30 * 60 * 1000
 const cache: { usdKes?: RateCacheEntry } = {}
 
 function fallbackRate() {
-  return Number(process.env.USD_TO_KES_RATE || 155)
+  return Number(process.env.NEXT_PUBLIC_USD_TO_KES_RATE || 155)
 }
 
 export async function getUsdToKesRate() {
